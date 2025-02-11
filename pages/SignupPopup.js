@@ -1,5 +1,6 @@
 import { Page } from 'playwright';
 
+
 class SignupPopup {
   constructor(page) {
     this.page = page;

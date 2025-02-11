@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import BasePage from '../../pages/BasePage';
+import BasePage from '../pages/BasePage.js';
 
 test('test', async ({ page }) => {
   const basePage = new BasePage(page);
