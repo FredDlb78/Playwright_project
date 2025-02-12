@@ -1,4 +1,3 @@
-import { Page } from 'playwright';
 
 class HeaderPage {
   constructor(page) {

@@ -1,14 +1,17 @@
 import { test, expect } from '@playwright/test';
-import BasePage from '../pages/BasePage.js';
+import AbstractPage from '../../pages/AbstractPage';
+import { faker } from '@faker-js/faker';
 
 test('test', async ({ page }) => {
-  const basePage = new BasePage(page);
-  const { headerPage, signupPopup } = basePage;
+  const abstractPage = new AbstractPage(page);
+  const { headerPage, signupPopup } = abstractPage;
+  const username = faker.internet.username();
+  const password = faker.internet.password();
 
-  await basePage.goToDemoBlaze();
+  await abstractPage.goToDemoBlaze();
   await headerPage.clickSignupButton();
-  await signupPopup.setUsername("username4567374684474");
-  await signupPopup.setPassword("password");
+  await signupPopup.setUsername(username);
+  await signupPopup.setPassword(password);
   await signupPopup.clickSignupThenAcceptAlert();
   await headerPage.clickSignupButton();
 });

@@ -1,5 +1,3 @@
-import { Page } from 'playwright';
-
 
 class SignupPopup {
   constructor(page) {
