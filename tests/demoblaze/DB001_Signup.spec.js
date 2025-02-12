@@ -2,57 +2,53 @@ import { test, expect } from '@playwright/test';
 import AbstractPage from '../../pages/AbstractPage';
 import { faker } from '@faker-js/faker';
 
-test('Signup with valid credentials', async ({ page }) => {
-  const abstractPage = new AbstractPage(page);
-  const { headerPage, signupPopup } = abstractPage;
-  const username = faker.internet.username();
-  const password = faker.internet.password();
+test.describe('Signup Tests', () => {
+  let abstractPage;
+  let headerPage;
+  let signupPopup;
+  let actualTitle = { value: "" };
+  let username = faker.internet.username();
+  let password = faker.internet.password();
 
-  await abstractPage.goToDemoBlaze();
-  await headerPage.clickSignupMenu();
-  await signupPopup.setUsername(username);
-  await signupPopup.setPassword(password);
-  await signupPopup.clickSignupThenAcceptAlert();
-  await headerPage.clickSignupMenu();
+  test.beforeEach(async ({ page }) => {
+    abstractPage = new AbstractPage(page);
+    ({ headerPage, signupPopup } = abstractPage);
+    await abstractPage.goToDemoBlaze();
+    await headerPage.clickSignupMenu();
+  });
+
+  test('Signup with valid credentials', async () => {
+
+    await signupPopup.setUsername(username);
+    await signupPopup.setPassword(password);
+    await signupPopup.clickSignupThenAcceptAlert();
+    await headerPage.clickSignupMenu();
+  });
+
+  test('Signup with invalid credentials: Username already exists', async () => {
+
+    await signupPopup.setUsername(username);
+    await signupPopup.setPassword(password);
+    await signupPopup.clickSignupThenDismissAlert();
+    await signupPopup.retrieveTitle(actualTitle);
+    await abstractPage.assertEquals("Sign up", actualTitle.value, "Signup popup title is not displayed");
+  });
+
+  test('Signup with invalid credentials: Empty username', async () => {
+
+    await signupPopup.setUsername("");
+    await signupPopup.setPassword(password);
+    await signupPopup.clickSignupThenDismissAlert();
+    await signupPopup.retrieveTitle(actualTitle);
+    await abstractPage.assertEquals("Sign up", actualTitle.value, "Signup popup title is not displayed");
+  });
+
+  test('Signup with invalid credentials: Empty password', async () => {
+
+    await signupPopup.setUsername(username);
+    await signupPopup.setPassword("");
+    await signupPopup.clickSignupThenDismissAlert();
+    await signupPopup.retrieveTitle(actualTitle);
+    await abstractPage.assertEquals("Sign up", actualTitle.value, "Signup popup title is not displayed");
+  });
 });
-
-test('Signup with invalid credentials: Username already exists', async ({ page }) => {
-  const abstractPage = new AbstractPage(page);
-  const { headerPage, signupPopup } = abstractPage;
-  const username = "testuser";
-  const password = faker.internet.password();
-
-  await abstractPage.goToDemoBlaze();
-  await headerPage.clickSignupMenu();
-  await signupPopup.setUsername(username);
-  await signupPopup.setPassword(password);
-  await signupPopup.clickSignupThenDismissAlert();
-  await abstractPage.assertEquals("Sign up", await signupPopup.getTitle(), "Title is not Sign up");
-});
-
-test('Signup with invalid credentials: Empty username', async ({ page }) => {
-  const abstractPage = new AbstractPage(page);
-  const { headerPage, signupPopup } = abstractPage;
-  const password = faker.internet.password();
-
-  await abstractPage.goToDemoBlaze();
-  await headerPage.clickSignupMenu();
-  await signupPopup.setUsername("");
-  await signupPopup.setPassword(password);
-  await signupPopup.clickSignupThenDismissAlert();
-  await abstractPage.assertEquals("Sign up", await signupPopup.getTitle(), "Title is not Sign up");
-});
-
-test('Signup with invalid credentials: Empty password', async ({ page }) => {
-  const abstractPage = new AbstractPage(page);
-  const { headerPage, signupPopup } = abstractPage;
-  const username = faker.internet.username();
-
-  await abstractPage.goToDemoBlaze();
-  await headerPage.clickSignupMenu();
-  await signupPopup.setUsername(username);
-  await signupPopup.setPassword("");
-  await signupPopup.clickSignupThenDismissAlert();
-  await abstractPage.assertEquals("Sign up", await signupPopup.getTitle(), "Title is not Sign up");
-});
-

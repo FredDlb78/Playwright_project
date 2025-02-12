@@ -32,11 +32,10 @@ class SignupPopup {
     await this.page.getByRole('button', { name: 'Sign up' }).click();
     console.log('Clicked Signup Button then dismissed alert');
   }
-  async getTitle() {
-    const title = await this.page.locator('#signInModalLabel').textContent();
-    console.log(`Title: ${title}`);
-    return title;
+  async retrieveTitle(titleRef) {
+    titleRef.value = (await this.page.locator('#signInModalLabel').textContent())?.trim() || "";
   }
+
 }
 
 export default SignupPopup;
