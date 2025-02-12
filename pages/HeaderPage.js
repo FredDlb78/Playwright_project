@@ -1,12 +1,12 @@
-import { Page } from 'playwright';
 
 class HeaderPage {
   constructor(page) {
     this.page = page;
   }
 
-  async clickSignupButton() {
+  async clickSignupMenu() {
     await this.page.getByRole('link', { name: 'Sign up' }).click();
+    console.log('Clicked Signup Menu');
   }
 }
 
