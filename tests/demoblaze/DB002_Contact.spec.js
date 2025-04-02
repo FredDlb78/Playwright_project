@@ -18,7 +18,7 @@ test.describe("Contact Tests", () => {
     await headerPage.clickContactMenu();
   });
 
-  test("Contact page", async () => {
+  test("Contact - Passing case", async () => {
     await contactPopup.setContactEmail(emailContact);
     await contactPopup.setContactName(nameContact);
     await contactPopup.setContactMessage(messageContact);

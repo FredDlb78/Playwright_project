@@ -8,7 +8,7 @@ class HeaderPage {
     console.log("Clicked Signup Menu");
   }
   async clickContactMenu() {
-    await page.getByRole("link", { name: "Contact" }).click();
+    await this.page.getByRole("link", { name: "Contact" }).click();
     console.log("Click Contact Menu");
   }
 }

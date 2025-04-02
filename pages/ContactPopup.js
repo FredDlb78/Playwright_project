@@ -24,7 +24,7 @@ class ContactPopup {
       console.log(`Dialog message: ${dialog.message()}`);
       dialog.accept().catch(() => {});
     });
-    await this.page.getByRole("button", { name: "Sign up" }).click();
+    await this.page.getByRole("button", { name: "Send message" }).click();
     console.log("Clicked Signup Button then accepted alert");
   }
 
