@@ -1,41 +1,46 @@
-
 class SignupPopup {
-  constructor(page) {
+  constructor(page, abstractPage) {
     this.page = page;
+    this.abstractPage = abstractPage;
   }
 
   async setUsername(username) {
-    await this.page.getByRole('textbox', { name: 'Username:' }).click();
-    await this.page.getByRole('textbox', { name: 'Username:' }).fill(username);
-    console.log(`Username set to: ${username}`);
+    await this.abstractPage.step(`Set username to "${username}"`, async () => {
+      const field = this.page.locator('#sign-username');
+      await field.waitFor({ state: 'visible' });
+      await field.fill(username);
+    });
   }
 
   async setPassword(password) {
-    await this.page.getByRole('textbox', { name: 'Password:' }).click();
-    await this.page.getByRole('textbox', { name: 'Password:' }).fill(password);
-    console.log(`Password set to: ${password}`);
+    await this.abstractPage.step(`Set password to "${password}"`, async () => {
+      const field = this.page.locator('#sign-password');
+      await field.waitFor({ state: 'visible' });
+      await field.fill(password);
+    });
   }
 
-    async clickSignupThenAcceptAlert() {
-    this.page.once('dialog', dialog => {
-      console.log(`Dialog message: ${dialog.message()}`);
-      dialog.accept().catch(() => {});
+  async clickSignupThenAcceptAlert() {
+    await this.abstractPage.step('Submit signup and accept alert', async () => {
+      this.page.once('dialog', dialog => dialog.accept());
+      await this.page.locator('button[onclick="register()"]').click();
     });
-    await this.page.getByRole('button', { name: 'Sign up' }).click();
-    console.log('Clicked Signup Button then accepted alert');
   }
+
   async clickSignupThenDismissAlert() {
-    this.page.once('dialog', dialog => {
-      console.log(`Dialog message: ${dialog.message()}`);
-      dialog.accept().catch(() => {});
+    await this.abstractPage.step('Submit signup and dismiss alert', async () => {
+      this.page.once('dialog', dialog => dialog.dismiss());
+      await this.page.locator('button[onclick="register()"]').click();
     });
-    await this.page.getByRole('button', { name: 'Sign up' }).click();
-    console.log('Clicked Signup Button then dismissed alert');
-  }
-  async retrieveTitle(titleRef) {
-    titleRef.value = (await this.page.locator('#signInModalLabel').textContent())?.trim() || "";
   }
 
+  async retrieveTitle() {
+    return await this.abstractPage.step('Get signup modal title', async () => {
+      const titleLocator = this.page.locator('#signInModalLabel');
+      await titleLocator.waitFor({ state: 'visible' });
+      return (await titleLocator.textContent()).trim();
+    });
+  }
 }
 
 export default SignupPopup;

@@ -5,21 +5,34 @@ import SignupPopup from "./SignupPopup";
 class AbstractPage {
   constructor(page) {
     this.page = page;
-    this.headerPage = new HeaderPage(page);
-    this.signupPopup = new SignupPopup(page);
-    this.contactPopup = new ContactPopup(page);
+    this.headerPage = new HeaderPage(page, this);
+    this.signupPopup = new SignupPopup(page, this);
+    this.contactPopup = new ContactPopup(page, this);
   }
 
   async goToDemoBlaze() {
-    await this.page.goto("https://www.demoblaze.com");
-    console.log("Navigated to DemoBlaze");
+    await this.step("Navigate to DemoBlaze", async () => {
+      await this.page.goto("https://www.demoblaze.com");
+    });
   }
-  async assertEquals(expectedMessage, actualMessage, errorMessage) {
-    if (expectedMessage !== actualMessage) {
-      throw new Error(errorMessage);
-      console.error(errorMessage);
-    } else {
-      console.log("assertEquals passed");
+
+  async assertEquals(expected, actual, message) {
+    await this.step(`Assert: ${message}`, async () => {
+      if (expected !== actual) {
+        throw new Error(`${message} | Expected: "${expected}" | Actual: "${actual}"`);
+      }
+    });
+  }
+
+  async step(description, callback) {
+    try {
+      console.log(`➡️ ${description}`);
+      const result = await callback();
+      console.log(`✅ ${description}`);
+      return result;
+    } catch (error) {
+      console.error(`❌ ${description} failed: ${error}`);
+      throw error;
     }
   }
 }

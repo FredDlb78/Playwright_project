@@ -1,15 +1,23 @@
 class HeaderPage {
-  constructor(page) {
+  constructor(page, abstractPage) {
     this.page = page;
+    this.abstractPage = abstractPage;
   }
 
   async clickSignupMenu() {
-    await this.page.getByRole("link", { name: "Sign up" }).click();
-    console.log("Clicked Signup Menu");
+    await this.abstractPage.step('Click Signup menu', async () => {
+      await this.page.locator('#signin2').waitFor({ state: 'visible' });
+      await this.page.locator('#signin2').click();
+      await this.page.waitForSelector('#signInModal', { state: 'visible' });
+    });
   }
+
   async clickContactMenu() {
-    await this.page.getByRole("link", { name: "Contact" }).click();
-    console.log("Click Contact Menu");
+    await this.abstractPage.step('Click Contact menu', async () => {
+      await this.page.locator('[data-target="#exampleModal"]').waitFor({ state: 'visible' });
+      await this.page.locator('[data-target="#exampleModal"]').click();
+      await this.page.waitForSelector('#exampleModal', { state: 'visible' });
+    });
   }
 }
 

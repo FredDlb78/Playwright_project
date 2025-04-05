@@ -15,6 +15,8 @@ test.describe('Signup Tests', () => {
     ({ headerPage, signupPopup } = abstractPage);
     await abstractPage.goToDemoBlaze();
     await headerPage.clickSignupMenu();
+    actualTitle = await signupPopup.retrieveTitle();
+    await abstractPage.assertEquals("Sign up", actualTitle, "Signup popup title is not displayed");
   });
 
   test('Signup with valid credentials', async () => {
@@ -30,8 +32,8 @@ test.describe('Signup Tests', () => {
     await signupPopup.setUsername(username);
     await signupPopup.setPassword(password);
     await signupPopup.clickSignupThenDismissAlert();
-    await signupPopup.retrieveTitle(actualTitle);
-    await abstractPage.assertEquals("Sign up", actualTitle.value, "Signup popup title is not displayed");
+    actualTitle = await signupPopup.retrieveTitle();
+    await abstractPage.assertEquals("Sign up", actualTitle, "Signup popup title is not displayed");
   });
 
   test('Signup with invalid credentials: Empty username', async () => {
@@ -39,8 +41,8 @@ test.describe('Signup Tests', () => {
     await signupPopup.setUsername("");
     await signupPopup.setPassword(password);
     await signupPopup.clickSignupThenDismissAlert();
-    await signupPopup.retrieveTitle(actualTitle);
-    await abstractPage.assertEquals("Sign up", actualTitle.value, "Signup popup title is not displayed");
+    actualTitle = await signupPopup.retrieveTitle();
+    await abstractPage.assertEquals("Sign up", actualTitle, "Signup popup title is not displayed");
   });
 
   test('Signup with invalid credentials: Empty password', async () => {
@@ -48,7 +50,7 @@ test.describe('Signup Tests', () => {
     await signupPopup.setUsername(username);
     await signupPopup.setPassword("");
     await signupPopup.clickSignupThenDismissAlert();
-    await signupPopup.retrieveTitle(actualTitle);
-    await abstractPage.assertEquals("Sign up", actualTitle.value, "Signup popup title is not displayed");
+    actualTitle = await signupPopup.retrieveTitle();
+    await abstractPage.assertEquals("Sign up", actualTitle, "Signup popup title is not displayed");
   });
 });

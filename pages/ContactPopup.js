@@ -1,37 +1,46 @@
 class ContactPopup {
-  constructor(page) {
+  constructor(page, abstractPage) {
     this.page = page;
+    this.abstractPage = abstractPage;
   }
 
-  async setContactEmail(contactEmail) {
-    await this.page.locator("#recipient-email").click();
-    await this.page.locator("#recipient-email").fill(contactEmail);
-    console.log(`ContactEmail set to: ${contactEmail}`);
+  async setContactEmail(email) {
+    await this.abstractPage.step(`Set contact email to "${email}"`, async () => {
+      const field = this.page.locator('#recipient-email');
+      await field.waitFor({ state: 'visible' });
+      await field.fill(email);
+    });
   }
-  async setContactName(contactName) {
-    await this.page.locator("#recipient-name").click();
-    await this.page.locator("#recipient-name").fill(contactName);
-    console.log(`ContactName set to: ${contactName}`);
+
+  async setContactName(name) {
+    await this.abstractPage.step(`Set contact name to "${name}"`, async () => {
+      const field = this.page.locator('#recipient-name');
+      await field.waitFor({ state: 'visible' });
+      await field.fill(name);
+    });
   }
-  async setContactMessage(contactMessage) {
-    await this.page.locator("#message-text").click();
-    await this.page.locator("#message-text").fill(contactMessage);
-    console.log(`ContactMessage set to: ${contactMessage}`);
+
+  async setContactMessage(message) {
+    await this.abstractPage.step(`Set contact message`, async () => {
+      const field = this.page.locator('#message-text');
+      await field.waitFor({ state: 'visible' });
+      await field.fill(message);
+    });
   }
 
   async clickSendMessageThenAcceptAlert() {
-    this.page.once("dialog", (dialog) => {
-      console.log(`Dialog message: ${dialog.message()}`);
-      dialog.accept().catch(() => {});
+    await this.abstractPage.step('Send message and accept alert', async () => {
+      this.page.once('dialog', dialog => dialog.accept());
+      await this.page.locator('button[onclick="send()"]').click();
     });
-    await this.page.getByRole("button", { name: "Send message" }).click();
-    console.log("Clicked Send message Button then accepted alert");
   }
 
-  async retrieveTitle(titleRef) {
-    titleRef.value =
-      (await this.page.locator("#exampleModalLabel").textContent())?.trim() ||
-      "";
+  async retrieveTitle() {
+    return await this.abstractPage.step('Get contact modal title', async () => {
+      const titleLocator = this.page.locator('#exampleModalLabel');
+      await titleLocator.waitFor({ state: 'visible' });
+      return (await titleLocator.textContent()).trim();
+    });
   }
 }
 

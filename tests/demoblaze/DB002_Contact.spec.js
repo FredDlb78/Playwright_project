@@ -6,17 +6,19 @@ test.describe("Contact Tests", () => {
   let abstractPage;
   let headerPage;
   let contactPopup;
+  let actualTitle;
   let emailContact = faker.internet.email();
   let nameContact = faker.internet.username();
   let messageContact = "HELLO";
 
-  test.beforeEach(async ({ page }) => {
-    abstractPage = new AbstractPage(page);
-    ({ headerPage, contactPopup } = abstractPage);
-    console.log("ContactPopup:", contactPopup);
-    await abstractPage.goToDemoBlaze();
-    await headerPage.clickContactMenu();
-  });
+test.beforeEach(async ({ page }) => {
+  abstractPage = new AbstractPage(page);
+  ({ headerPage, contactPopup } = abstractPage);
+  await abstractPage.goToDemoBlaze();
+  await headerPage.clickContactMenu();
+  actualTitle = await contactPopup.retrieveTitle();
+  await abstractPage.assertEquals("New message", actualTitle, "Contact popup title is not displayed");
+});
 
   test("Contact - Passing case", async () => {
     await contactPopup.setContactEmail(emailContact);
