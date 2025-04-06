@@ -43,12 +43,14 @@ jobs:
         with:
           payload: |
             {
+              "text": "Résultats des tests Playwright - ${{ github.repository }}",
               "blocks": [
                 {
-                  "type": "section",
+                  "type": "header",
                   "text": {
-                    "type": "mrkdwn",
-                    "text": "🚀 *Résultats des Tests Playwright*"
+                    "type": "plain_text",
+                    "text": "🔍 Résultats des Tests Playwright",
+                    "emoji": true
                   }
                 },
                 {
@@ -76,7 +78,7 @@ jobs:
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Détails:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Voir le rapport>"
+                      "text": "*Rapport:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Voir les détails>"
                     }
                   ]
                 }
