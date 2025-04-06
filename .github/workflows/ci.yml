@@ -25,24 +25,28 @@ jobs:
           npx playwright install --with-deps
           sudo apt-get install -y jq
       
-      - name: Run tests and process results
+      - name: Run tests with JSON output
         id: run-tests
         run: |
-          # Exécute les tests et capture le statut
-          npx playwright test || true
+          # Créer le dossier des résultats
+          mkdir -p test-results
           
-          # Traite les résultats
+          # Exécuter les tests avec sortie JSON
+          npx playwright test --reporter=json,html || echo "::set-output name=test_status::failure"
+          
+          # Extraire les statistiques
           if [ -f "test-results/json-results.json" ]; then
-            PASSED=$(jq '.stats.passed' test-results/json-results.json)
-            FAILED=$(jq '.stats.failed' test-results/json-results.json)
+            PASSED=$(jq -r '.stats.passed' test-results/json-results.json)
+            FAILED=$(jq -r '.stats.failed' test-results/json-results.json)
+            echo "passed=${PASSED:-0}" >> $GITHUB_OUTPUT
+            echo "failed=${FAILED:-0}" >> $GITHUB_OUTPUT
+            echo "status=$([ "$FAILED" -eq 0 ] && echo 0 || echo 1)" >> $GITHUB_OUTPUT
           else
-            PASSED=0
-            FAILED=1
+            echo "passed=0" >> $GITHUB_OUTPUT
+            echo "failed=1" >> $GITHUB_OUTPUT
+            echo "status=1" >> $GITHUB_OUTPUT
           fi
           
-          echo "passed=$PASSED" >> $GITHUB_OUTPUT
-          echo "failed=$FAILED" >> $GITHUB_OUTPUT
-          echo "status=$(( $FAILED > 0 ? 1 : 0 ))" >> $GITHUB_OUTPUT
           echo "REPORT_URL=https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> $GITHUB_ENV
       
       - name: Upload HTML report
@@ -67,7 +71,7 @@ jobs:
         with:
           payload: |
             {
-              "text": "🚀 Résultats des tests - ${{ github.repository }} (${{ github.ref_name }}) - ${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }} - ${{ steps.run-tests.outputs.passed }}✅ ${{ steps.run-tests.outputs.failed }}❌ - Rapport: ${{ env.REPORT_URL }}",
+              "text": "🚀 Résultats des tests Playwright - ${{ github.repository }} (${{ github.ref_name }}) - ${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }} - Rapport: ${{ env.REPORT_URL }}",
               "blocks": [
                 {
                   "type": "header",
@@ -86,7 +90,7 @@ jobs:
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Résultats:*\n${{ steps.run-tests.outputs.passed }} ✅ | ${{ steps.run-tests.outputs.failed }} ❌"
+                      "text": "*Résultats:*\n${{ steps.run-tests.outputs.passed || 0 }} ✅ | ${{ steps.run-tests.outputs.failed || 0 }} ❌"
                     }
                   ]
                 },
@@ -114,15 +118,6 @@ jobs:
                         "emoji": true
                       },
                       "url": "${{ env.REPORT_URL }}"
-                    },
-                    {
-                      "type": "button",
-                      "text": {
-                        "type": "plain_text",
-                        "text": "Rapport HTML",
-                        "emoji": true
-                      },
-                      "url": "${{ env.REPORT_URL }}/artifacts"
                     }
                   ]
                 }
