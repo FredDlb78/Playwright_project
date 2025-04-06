@@ -28,26 +28,25 @@ jobs:
       - name: Run tests and process results
         id: run-tests
         run: |
-          # Créer le dossier des résultats
           mkdir -p test-results
           
-          # Exécuter les tests avec les reporters
-          TEST_RESULT=$(npx playwright test --reporter=json,html 2>&1 | tee test-results/raw-output.txt; exit ${PIPESTATUS[0]})
-          TEST_EXIT_CODE=$?
+          # Run tests with JSON reporter
+          npx playwright test --reporter=json,html || true
           
-          # Extraire les statistiques
+          # Process results with error handling
           if [ -f "test-results/json-results.json" ]; then
             PASSED=$(jq -r '.stats.passed' test-results/json-results.json)
             FAILED=$(jq -r '.stats.failed' test-results/json-results.json)
+            STATUS=$([ "$FAILED" -eq 0 ] && echo 0 || echo 1)
           else
-            # Fallback pour extraire les stats du output brut
-            PASSED=$(grep -oP '(?<=passed: )\d+' test-results/raw-output.txt || echo 0)
-            FAILED=$(grep -oP '(?<=failed: )\d+' test-results/raw-output.txt || echo 0)
+            PASSED=0
+            FAILED=1
+            STATUS=1
           fi
           
           echo "passed=$PASSED" >> $GITHUB_OUTPUT
           echo "failed=$FAILED" >> $GITHUB_OUTPUT
-          echo "status=$TEST_EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
           echo "REPORT_URL=https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> $GITHUB_ENV
       
       - name: Upload HTML report
@@ -56,13 +55,6 @@ jobs:
         with:
           name: playwright-html-report
           path: test-results/html-report/
-      
-      - name: Upload JSON results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-json-results
-          path: test-results/json-results.json
       
       - name: Notify Slack
         if: always()
@@ -78,7 +70,7 @@ jobs:
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "📊 Rapport Playwright - ${{ github.event_name == 'schedule' && '⏰ Planifié' || '⚡ Déclenché' }}",
+                    "text": "📊 Tests Playwright - ${{ github.event_name == 'schedule' && '⏰ Planifié' || '⚡ Déclenché' }}",
                     "emoji": true
                   }
                 },
@@ -118,19 +110,10 @@ jobs:
                       "type": "button",
                       "text": {
                         "type": "plain_text",
-                        "text": "Voir le rapport GitHub",
+                        "text": "Voir le rapport",
                         "emoji": true
                       },
                       "url": "${{ env.REPORT_URL }}"
-                    },
-                    {
-                      "type": "button",
-                      "text": {
-                        "type": "plain_text",
-                        "text": "Télécharger rapport",
-                        "emoji": true
-                      },
-                      "url": "${{ env.REPORT_URL }}/artifacts"
                     }
                   ]
                 }
