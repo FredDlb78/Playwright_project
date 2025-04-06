@@ -43,13 +43,13 @@ jobs:
         with:
           payload: |
             {
-              "text": "Résultats des tests Playwright - ${{ github.repository }}",
+              "text": "Résultats des tests Playwright - ${{ github.repository }} (${{ github.ref_name }}) - ${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }} - Rapport: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
               "blocks": [
                 {
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "🔍 Résultats des Tests Playwright",
+                    "text": "🔍 Rapport Playwright - ${{ github.ref_name }}",
                     "emoji": true
                   }
                 },
@@ -61,26 +61,27 @@ jobs:
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Dépôt:*\n`${{ github.repository }}`"
+                      "text": "*Statut:*\n${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }}"
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Branche:*\n`${{ github.ref_name }}`"
+                      "text": "*Dépôt:*\n`${{ github.repository }}`"
                     }
                   ]
                 },
                 {
                   "type": "section",
-                  "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Statut:*\n${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Rapport:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Voir les détails>"
-                    }
-                  ]
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*📊 Rapport complet:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Voir sur GitHub>"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*📁 Fichiers de rapport:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Télécharger les artefacts>"
+                  }
                 }
               ]
             }
