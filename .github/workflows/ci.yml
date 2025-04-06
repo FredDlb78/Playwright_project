@@ -4,8 +4,6 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
-  schedule:
-    - cron: '0 6 * * 1' # Tous les lundis à 6h
 
 jobs:
   test:
@@ -22,31 +20,31 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
-      - name: Install browsers
-        run: npx playwright install --with-deps
-      
-      - name: Install jq (for test stats)
-        run: sudo apt-get install -y jq
-        if: runner.os == 'Linux'
+      - name: Install browsers and tools
+        run: |
+          npx playwright install --with-deps
+          sudo apt-get install -y jq
       
       - name: Run tests and extract stats
         id: run-tests
         run: |
-          # Génère le rapport JSON et extrait les stats
           TEST_RESULTS=$(npx playwright test --reporter=json | jq -c '.stats')
           PASSED=$(echo $TEST_RESULTS | jq '.passed')
           FAILED=$(echo $TEST_RESULTS | jq '.failed')
-          
-          # Crée le lien de rapport final
-          REPORT_URL="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          
           echo "passed=$PASSED" >> $GITHUB_OUTPUT
           echo "failed=$FAILED" >> $GITHUB_OUTPUT
-          echo "report-url=$REPORT_URL" >> $GITHUB_OUTPUT
           echo "status=$(( $FAILED > 0 ? 1 : 0 ))" >> $GITHUB_OUTPUT
-          echo "REPORT_URL=$REPORT_URL" >> $GITHUB_ENV
+          echo "REPORT_URL=https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> $GITHUB_ENV
       
-      - name: Upload report
+      - name: Generate HTML report
+        if: always()
+        run: |
+          npx playwright show-report --host 0.0.0.0 &
+          sleep 5
+          mkdir -p playwright-report
+          cp -r ~/.cache/ms-playwright/playwright-report/* playwright-report/
+      
+      - name: Upload HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -61,29 +59,26 @@ jobs:
         with:
           payload: |
             {
-              "text": "🚀 Résultats des tests Playwright (${{ github.event_name == 'schedule' && 'Planifié' || 'Déclenché' }}) - ${{ github.repository }} (${{ github.ref_name }}) - ${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }} - Rapport: ${{ env.REPORT_URL }}",
+              "text": "🚀 Résultats des tests - ${{ github.repository }} (${{ github.ref_name }}) - ${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échecs' }} - ${{ steps.run-tests.outputs.passed }}✅ ${{ steps.run-tests.outputs.failed }}❌ - Rapport: ${{ env.REPORT_URL }}",
               "blocks": [
                 {
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "🔍 Tests Playwright - ${{ github.event_name == 'schedule' && '⏰ Planifié' || '⚡ Déclenché' }}",
+                    "text": "📊 Rapport Playwright",
                     "emoji": true
                   }
-                },
-                {
-                  "type": "divider"
                 },
                 {
                   "type": "section",
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Statut:*\n${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }}"
+                      "text": "*Statut:*\n${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échecs' }}"
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Tests:*\n✅ ${{ steps.run-tests.outputs.passed }} | ❌ ${{ steps.run-tests.outputs.failed }}"
+                      "text": "*Résultats:*\n${{ steps.run-tests.outputs.passed }} ✅ | ${{ steps.run-tests.outputs.failed }} ❌"
                     }
                   ]
                 },
@@ -101,11 +96,18 @@ jobs:
                   ]
                 },
                 {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*📊 Rapport complet:*\n<${{ env.REPORT_URL }}|Voir sur GitHub>"
-                  }
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "Voir le rapport complet",
+                        "emoji": true
+                      },
+                      "url": "${{ env.REPORT_URL }}"
+                    }
+                  ]
                 }
               ]
             }
