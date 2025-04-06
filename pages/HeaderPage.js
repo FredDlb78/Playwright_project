@@ -8,7 +8,7 @@ class HeaderPage {
     await this.abstractPage.step('Click Signup menu', async () => {
       await this.page.locator('#signin2').waitFor({ state: 'visible' });
       await this.page.locator('#signin2').click();
-      await this.page.waitForSelector('#signInModal', { state: 'visible' });
+      await this.page.waitForSelector('#signInModalLabel', { state: 'visible' });
     });
   }
 
