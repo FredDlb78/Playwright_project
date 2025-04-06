@@ -5,11 +5,7 @@ on:
   pull_request:
     branches: [main, master]
   schedule:
-    - cron: '0 6 * * 1' # Tous les lundis à 6h00 (UTC)
-
-env:
-  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-  REPORT_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    - cron: '0 6 * * 1' # Tous les lundis à 6h
 
 jobs:
   test:
@@ -29,12 +25,26 @@ jobs:
       - name: Install browsers
         run: npx playwright install --with-deps
       
-      - name: Run tests
+      - name: Install jq (for test stats)
+        run: sudo apt-get install -y jq
+        if: runner.os == 'Linux'
+      
+      - name: Run tests and extract stats
         id: run-tests
         run: |
-          npx playwright test
-          echo "status=$?" >> $GITHUB_OUTPUT
+          # Génère le rapport JSON et extrait les stats
+          TEST_RESULTS=$(npx playwright test --reporter=json | jq -c '.stats')
+          PASSED=$(echo $TEST_RESULTS | jq '.passed')
+          FAILED=$(echo $TEST_RESULTS | jq '.failed')
+          
+          # Crée le lien de rapport final
+          REPORT_URL="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+          echo "failed=$FAILED" >> $GITHUB_OUTPUT
           echo "report-url=$REPORT_URL" >> $GITHUB_OUTPUT
+          echo "status=$(( $FAILED > 0 ? 1 : 0 ))" >> $GITHUB_OUTPUT
+          echo "REPORT_URL=$REPORT_URL" >> $GITHUB_ENV
       
       - name: Upload report
         if: always()
@@ -51,7 +61,7 @@ jobs:
         with:
           payload: |
             {
-              "text": "🚀 Résultats des tests Playwright (${{ github.event_name == 'schedule' && 'Planifié' || 'Déclenché' }}) - ${{ github.repository }} (${{ github.ref_name }}) - ${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }} - Rapport: $REPORT_URL",
+              "text": "🚀 Résultats des tests Playwright (${{ github.event_name == 'schedule' && 'Planifié' || 'Déclenché' }}) - ${{ github.repository }} (${{ github.ref_name }}) - ${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }} - Rapport: ${{ env.REPORT_URL }}",
               "blocks": [
                 {
                   "type": "header",
@@ -73,6 +83,19 @@ jobs:
                     },
                     {
                       "type": "mrkdwn",
+                      "text": "*Tests:*\n✅ ${{ steps.run-tests.outputs.passed }} | ❌ ${{ steps.run-tests.outputs.failed }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Dépôt:*\n`${{ github.repository }}`"
+                    },
+                    {
+                      "type": "mrkdwn",
                       "text": "*Branche:*\n`${{ github.ref_name }}`"
                     }
                   ]
@@ -83,15 +106,6 @@ jobs:
                     "type": "mrkdwn",
                     "text": "*📊 Rapport complet:*\n<${{ env.REPORT_URL }}|Voir sur GitHub>"
                   }
-                },
-                {
-                  "type": "context",
-                  "elements": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "Exécuté le: $(date -u +'%d/%m/%Y à %H:%M UTC')"
-                    }
-                  ]
                 }
               ]
             }
