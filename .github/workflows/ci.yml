@@ -25,28 +25,29 @@ jobs:
           npx playwright install --with-deps
           sudo apt-get install -y jq
       
-      - name: Run tests with JSON output
+      - name: Run tests and process results
         id: run-tests
         run: |
           # Créer le dossier des résultats
           mkdir -p test-results
           
-          # Exécuter les tests avec sortie JSON
-          npx playwright test --reporter=json,html || echo "::set-output name=test_status::failure"
+          # Exécuter les tests avec les reporters
+          TEST_RESULT=$(npx playwright test --reporter=json,html 2>&1 | tee test-results/raw-output.txt; exit ${PIPESTATUS[0]})
+          TEST_EXIT_CODE=$?
           
           # Extraire les statistiques
           if [ -f "test-results/json-results.json" ]; then
             PASSED=$(jq -r '.stats.passed' test-results/json-results.json)
             FAILED=$(jq -r '.stats.failed' test-results/json-results.json)
-            echo "passed=${PASSED:-0}" >> $GITHUB_OUTPUT
-            echo "failed=${FAILED:-0}" >> $GITHUB_OUTPUT
-            echo "status=$([ "$FAILED" -eq 0 ] && echo 0 || echo 1)" >> $GITHUB_OUTPUT
           else
-            echo "passed=0" >> $GITHUB_OUTPUT
-            echo "failed=1" >> $GITHUB_OUTPUT
-            echo "status=1" >> $GITHUB_OUTPUT
+            # Fallback pour extraire les stats du output brut
+            PASSED=$(grep -oP '(?<=passed: )\d+' test-results/raw-output.txt || echo 0)
+            FAILED=$(grep -oP '(?<=failed: )\d+' test-results/raw-output.txt || echo 0)
           fi
           
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+          echo "failed=$FAILED" >> $GITHUB_OUTPUT
+          echo "status=$TEST_EXIT_CODE" >> $GITHUB_OUTPUT
           echo "REPORT_URL=https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> $GITHUB_ENV
       
       - name: Upload HTML report
@@ -71,15 +72,18 @@ jobs:
         with:
           payload: |
             {
-              "text": "🚀 Résultats des tests Playwright - ${{ github.repository }} (${{ github.ref_name }}) - ${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }} - Rapport: ${{ env.REPORT_URL }}",
+              "text": "🚀 Résultats des tests Playwright - ${{ github.repository }} (${{ github.ref_name }}) - ${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }} - ${{ steps.run-tests.outputs.passed }}✅ ${{ steps.run-tests.outputs.failed }}❌ - Rapport: ${{ env.REPORT_URL }}",
               "blocks": [
                 {
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "📊 Rapport Playwright",
+                    "text": "📊 Rapport Playwright - ${{ github.event_name == 'schedule' && '⏰ Planifié' || '⚡ Déclenché' }}",
                     "emoji": true
                   }
+                },
+                {
+                  "type": "divider"
                 },
                 {
                   "type": "section",
@@ -90,7 +94,7 @@ jobs:
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Résultats:*\n${{ steps.run-tests.outputs.passed || 0 }} ✅ | ${{ steps.run-tests.outputs.failed || 0 }} ❌"
+                      "text": "*Résultats:*\n${{ steps.run-tests.outputs.passed }} ✅ | ${{ steps.run-tests.outputs.failed }} ❌"
                     }
                   ]
                 },
@@ -114,10 +118,19 @@ jobs:
                       "type": "button",
                       "text": {
                         "type": "plain_text",
-                        "text": "Voir le rapport complet",
+                        "text": "Voir le rapport GitHub",
                         "emoji": true
                       },
                       "url": "${{ env.REPORT_URL }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "Télécharger rapport",
+                        "emoji": true
+                      },
+                      "url": "${{ env.REPORT_URL }}/artifacts"
                     }
                   ]
                 }
