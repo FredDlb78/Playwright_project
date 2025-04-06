@@ -1,0 +1,12 @@
+name: 'Comment Test Report'
+description: 'Add test report comment to PR'
+inputs:
+  github-token:
+    description: 'GitHub token'
+    required: true
+runs:
+  using: 'composite'
+  steps:
+    - run: |
+        echo "Test report available at: https://github.com/FredDlb78/Playwright_project.git/actions/runs/$GITHUB_RUN_ID"
+      shell: bash
