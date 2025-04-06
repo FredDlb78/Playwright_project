@@ -25,31 +25,39 @@ jobs:
           npx playwright install --with-deps
           sudo apt-get install -y jq
       
-      - name: Run tests and extract stats
+      - name: Run tests and process results
         id: run-tests
         run: |
-          TEST_RESULTS=$(npx playwright test --reporter=json | jq -c '.stats')
-          PASSED=$(echo $TEST_RESULTS | jq '.passed')
-          FAILED=$(echo $TEST_RESULTS | jq '.failed')
+          # Exécute les tests et capture le statut
+          npx playwright test || true
+          
+          # Traite les résultats
+          if [ -f "test-results/json-results.json" ]; then
+            PASSED=$(jq '.stats.passed' test-results/json-results.json)
+            FAILED=$(jq '.stats.failed' test-results/json-results.json)
+          else
+            PASSED=0
+            FAILED=1
+          fi
+          
           echo "passed=$PASSED" >> $GITHUB_OUTPUT
           echo "failed=$FAILED" >> $GITHUB_OUTPUT
           echo "status=$(( $FAILED > 0 ? 1 : 0 ))" >> $GITHUB_OUTPUT
           echo "REPORT_URL=https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> $GITHUB_ENV
       
-      - name: Generate HTML report
-        if: always()
-        run: |
-          npx playwright show-report --host 0.0.0.0 &
-          sleep 5
-          mkdir -p playwright-report
-          cp -r ~/.cache/ms-playwright/playwright-report/* playwright-report/
-      
       - name: Upload HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
-          path: playwright-report/
+          name: playwright-html-report
+          path: test-results/html-report/
+      
+      - name: Upload JSON results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-json-results
+          path: test-results/json-results.json
       
       - name: Notify Slack
         if: always()
@@ -59,7 +67,7 @@ jobs:
         with:
           payload: |
             {
-              "text": "🚀 Résultats des tests - ${{ github.repository }} (${{ github.ref_name }}) - ${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échecs' }} - ${{ steps.run-tests.outputs.passed }}✅ ${{ steps.run-tests.outputs.failed }}❌ - Rapport: ${{ env.REPORT_URL }}",
+              "text": "🚀 Résultats des tests - ${{ github.repository }} (${{ github.ref_name }}) - ${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }} - ${{ steps.run-tests.outputs.passed }}✅ ${{ steps.run-tests.outputs.failed }}❌ - Rapport: ${{ env.REPORT_URL }}",
               "blocks": [
                 {
                   "type": "header",
@@ -74,7 +82,7 @@ jobs:
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Statut:*\n${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échecs' }}"
+                      "text": "*Statut:*\n${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }}"
                     },
                     {
                       "type": "mrkdwn",
@@ -106,6 +114,15 @@ jobs:
                         "emoji": true
                       },
                       "url": "${{ env.REPORT_URL }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "Rapport HTML",
+                        "emoji": true
+                      },
+                      "url": "${{ env.REPORT_URL }}/artifacts"
                     }
                   ]
                 }
