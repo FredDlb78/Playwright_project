@@ -1,4 +1,4 @@
-name: Tests Playwright avec Notification Slack
+name: Playwright Tests with Slack Notification
 
 on:
   push:
@@ -13,28 +13,29 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    
     - uses: actions/setup-node@v4
       with:
         node-version: 18
 
-    - name: Installer les dépendances
+    - name: Install dependencies
       run: npm ci
 
-    - name: Installer Playwright
+    - name: Install Playwright
       run: npx playwright install --with-deps
 
-    - name: Exécuter les tests
+    - name: Run tests
       run: npx playwright test
       continue-on-error: true
 
-    - name: Téléverser le rapport HTML
+    - name: Upload HTML report
       uses: actions/upload-artifact@v3
       if: always()
       with:
-        name: rapport-playwright
+        name: playwright-report
         path: playwright-report/
 
-    - name: Notifier Slack
+    - name: Notify Slack
       if: always()
       uses: slackapi/slack-github-action@v1.24.0
       env:
@@ -47,7 +48,7 @@ jobs:
                 "type": "header",
                 "text": {
                   "type": "plain_text",
-                  "text": "Résultats des Tests Playwright",
+                  "text": "Playwright Test Results :playwright:",
                   "emoji": true
                 }
               },
@@ -56,11 +57,36 @@ jobs:
                 "fields": [
                   {
                     "type": "mrkdwn",
-                    "text": "*Statut*\n${{ job.status }}"
+                    "text": "*Repository:*\n`${{ github.repository }}`"
                   },
                   {
                     "type": "mrkdwn",
-                    "text": "*Détails*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Voir les résultats>"
+                    "text": "*Branch:*\n`${{ github.ref_name }}`"
+                  }
+                ]
+              },
+              {
+                "type": "section",
+                "fields": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Status:*\n${{ contains(job.status,'success') && ':white_check_mark: Success' || ':x: Failed' }}"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Workflow:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>"
+                  }
+                ]
+              },
+              {
+                "type": "divider"
+              },
+              {
+                "type": "context",
+                "elements": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "Executed at: $(date -u +'%Y-%m-%d %H:%M UTC')"
                   }
                 ]
               }
