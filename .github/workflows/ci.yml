@@ -5,10 +5,11 @@ on:
   pull_request:
     branches: [main, master]
   schedule:
-    - cron: '0 6 * * 1-5' # Exécution du lundi au vendredi à 8h00
+    - cron: '0 6 * * 1' # Tous les lundis à 6h00 (UTC)
 
 env:
   SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  REPORT_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
 jobs:
   test:
@@ -33,6 +34,7 @@ jobs:
         run: |
           npx playwright test
           echo "status=$?" >> $GITHUB_OUTPUT
+          echo "report-url=$REPORT_URL" >> $GITHUB_OUTPUT
       
       - name: Upload report
         if: always()
@@ -49,13 +51,13 @@ jobs:
         with:
           payload: |
             {
-              "text": "Résultats des tests Playwright (${{ github.event_name == 'schedule' && 'Planifié' || 'Déclenché' }}) - ${{ github.repository }} - ${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }}",
+              "text": "🚀 Résultats des tests Playwright (${{ github.event_name == 'schedule' && 'Planifié' || 'Déclenché' }}) - ${{ github.repository }} (${{ github.ref_name }}) - ${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }} - Rapport: $REPORT_URL",
               "blocks": [
                 {
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "🔍 Tests Playwright - ${{ github.event_name == 'schedule' && 'Planifié' || 'Déclenché' }}",
+                    "text": "🔍 Tests Playwright - ${{ github.event_name == 'schedule' && '⏰ Planifié' || '⚡ Déclenché' }}",
                     "emoji": true
                   }
                 },
@@ -67,20 +69,7 @@ jobs:
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Type:*\n${{ github.event_name == 'schedule' && '⏰ Planification CRON' || github.event_name == 'push' && '📌 Push' || '🔄 Pull Request' }}"
-                    },
-                    {
-                      "type": "mrkdwn",
                       "text": "*Statut:*\n${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }}"
-                    }
-                  ]
-                },
-                {
-                  "type": "section",
-                  "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Dépôt:*\n`${{ github.repository }}`"
                     },
                     {
                       "type": "mrkdwn",
@@ -92,8 +81,17 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*📊 Rapport complet:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Voir sur GitHub>"
+                    "text": "*📊 Rapport complet:*\n<${{ env.REPORT_URL }}|Voir sur GitHub>"
                   }
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "Exécuté le: $(date -u +'%d/%m/%Y à %H:%M UTC')"
+                    }
+                  ]
                 }
               ]
             }
