@@ -2,7 +2,7 @@ name: Playwright CI with Slack
 on: [push, pull_request]
 
 env:
-  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
 jobs:
   test:
@@ -23,8 +23,10 @@ jobs:
         run: npx playwright install --with-deps
       
       - name: Run tests
-        id: tests
-        run: npx playwright test || echo "::set-output name=status::failure"
+        id: run-tests
+        run: |
+          npx playwright test
+          echo "status=$?" >> $GITHUB_OUTPUT
       
       - name: Upload report
         if: always()
@@ -70,7 +72,7 @@ jobs:
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Statut:*\n${{ steps.tests.outcome == 'success' ? '✅ Succès' : '❌ Échec' }}"
+                      "text": "*Statut:*\n${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }}"
                     },
                     {
                       "type": "mrkdwn",
