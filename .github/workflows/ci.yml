@@ -4,6 +4,8 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  schedule:
+    - cron: '0 9 * * 1'
 
 jobs:
   test:
@@ -30,14 +32,14 @@ jobs:
         run: |
           mkdir -p test-results
           
-          # Run tests with JSON reporter
-          npx playwright test --reporter=json,html || true
+          # Exécution des tests avec capture du statut
+          npx playwright test --reporter=json,html || TEST_STATUS=$?
           
-          # Process results with error handling
+          # Traitement des résultats
           if [ -f "test-results/json-results.json" ]; then
             PASSED=$(jq -r '.stats.passed' test-results/json-results.json)
             FAILED=$(jq -r '.stats.failed' test-results/json-results.json)
-            STATUS=$([ "$FAILED" -eq 0 ] && echo 0 || echo 1)
+            STATUS=${TEST_STATUS:-0}
           else
             PASSED=0
             FAILED=1
@@ -64,13 +66,13 @@ jobs:
         with:
           payload: |
             {
-              "text": "🚀 Résultats des tests Playwright - ${{ github.repository }} (${{ github.ref_name }}) - ${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }} - ${{ steps.run-tests.outputs.passed }}✅ ${{ steps.run-tests.outputs.failed }}❌ - Rapport: ${{ env.REPORT_URL }}",
+              "text": "🚀 Résultats des tests Playwright - ${{ github.repository }} (${{ github.ref_name }}) - ${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }} - ${{ steps.run-tests.outputs.passed }} passés / ${{ steps.run-tests.outputs.failed }} échecs - Rapport: ${{ env.REPORT_URL }}",
               "blocks": [
                 {
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "📊 Tests Playwright - ${{ github.event_name == 'schedule' && '⏰ Planifié' || '⚡ Déclenché' }}",
+                    "text": "🔍 Tests Playwright - ${{ github.event_name == 'schedule' && '⏰ Planifié' || '⚡ Déclenché' }}",
                     "emoji": true
                   }
                 },
@@ -82,11 +84,11 @@ jobs:
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Statut:*\n${{ steps.run-tests.outputs.status == '0' && '✅ Succès' || '❌ Échec' }}"
+                      "text": "*Statut:*\n${{ steps.run-tests.outputs.status == '0' && ':white_check_mark: Succès' || ':x: Échec' }}"
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Résultats:*\n${{ steps.run-tests.outputs.passed }} ✅ | ${{ steps.run-tests.outputs.failed }} ❌"
+                      "text": "*Résultats:*\n${{ steps.run-tests.outputs.passed }} :white_check_mark: | ${{ steps.run-tests.outputs.failed }} :x:"
                     }
                   ]
                 },
@@ -110,7 +112,7 @@ jobs:
                       "type": "button",
                       "text": {
                         "type": "plain_text",
-                        "text": "Voir le rapport",
+                        "text": "Voir le rapport complet",
                         "emoji": true
                       },
                       "url": "${{ env.REPORT_URL }}"
